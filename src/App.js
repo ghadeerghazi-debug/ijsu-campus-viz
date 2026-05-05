@@ -320,13 +320,13 @@ function CampusMap() {
         </div>
       </div>
 
-      {/* Main map area */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>
+      {/* Main map area — full width, rankings below */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Map */}
         <div style={{
           background: T.bgPanel, borderRadius: '16px',
           border: `1px solid ${T.border}`,
-          padding: '20px', position: 'relative',
+          padding: '14px', position: 'relative',
           boxShadow: T.shadow,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -522,53 +522,60 @@ function CampusSVG({ buildings, allBuildings, selected, setSelected, hovered, se
         })}
 
         {/* Hover info */}
-        {hovered && (
-          <g style={{ pointerEvents: 'none' }}>
-            <rect
-              x={W * (hovered.x / 100) + W * (hovered.w / 100) / 2 - 90}
-              y={H * (hovered.y / 100) - 50}
-              width="180" height="40" rx="6"
-              fill="#FFFFFF" stroke={T.amber} strokeWidth="1.5"
-              opacity="0.97"
-            />
-            <text
-              x={W * (hovered.x / 100) + W * (hovered.w / 100) / 2}
-              y={H * (hovered.y / 100) - 30}
-              textAnchor="middle" fontSize="14" fontWeight="700" fill={T.text}
-              fontFamily='"Tajawal", sans-serif'
-            >
-              {hovered.name_ar}
-            </text>
-            <text
-              x={W * (hovered.x / 100) + W * (hovered.w / 100) / 2}
-              y={H * (hovered.y / 100) - 16}
-              textAnchor="middle" fontSize="11" fill={T.amberDk}
-              fontFamily='"Tajawal", sans-serif'
-            >
-              {hovered.area} م² · {calculatePotential(hovered.area)} ك.و إمكانية
-            </text>
-          </g>
-        )}
+        {hovered && (() => {
+          const cx = W * ((hovered.x + hovered.w / 2) / 100);
+          const cy = H * ((hovered.y + hovered.h / 2) / 100);
+          const newTop = cy - H * 0.065;
+          const tipY = newTop - 56;
+          return (
+            <g style={{ pointerEvents: 'none' }}>
+              <rect
+                x={cx - 100} y={tipY}
+                width="200" height="46" rx="10"
+                fill="#0F172A" stroke="#3B82F6" strokeWidth="1.5"
+                opacity="0.97"
+              />
+              <text
+                x={cx} y={tipY + 20}
+                textAnchor="middle" fontSize="14" fontWeight="700" fill="#F8FAFC"
+                fontFamily='"Tajawal", sans-serif'
+              >
+                {hovered.name_ar}
+              </text>
+              <text
+                x={cx} y={tipY + 36}
+                textAnchor="middle" fontSize="11" fill="#93C5FD"
+                fontFamily='"Tajawal", sans-serif'
+              >
+                {hovered.area} م² · {calculatePotential(hovered.area)} ك.و إمكانية
+              </text>
+            </g>
+          );
+        })()}
       </svg>
     </div>
   );
 }
 
 // =================================================================
-// BUILDING SHAPE
+// BUILDING SHAPE — uniform size, centered on each building
 // =================================================================
 function BuildingShape({ b, W, H, isVisible, isSelected, isHovered, onClick, onMouseEnter, onMouseLeave, showPanels, showLabels }) {
-  const x = W * (b.x / 100);
-  const y = H * (b.y / 100);
-  const w = W * (b.w / 100);
-  const h = H * (b.h / 100);
+  // Uniform block size for readability — same footprint for every building
+  const w = W * 0.11;
+  const h = H * 0.13;
+  // Center the uniform block on the building's original center point
+  const cx = W * ((b.x + b.w / 2) / 100);
+  const cy = H * ((b.y + b.h / 2) / 100);
+  const x = cx - w / 2;
+  const y = cy - h / 2;
 
   const colorMap = { excellent: T.green, good: T.amber, medium: T.coral };
   const color = colorMap[b.suitability];
 
-  const opacity = !isVisible ? 0.15 : 1;
-  const scale = isHovered || isSelected ? 1.04 : 1;
-  const transformOrigin = `${x + w/2}px ${y + h/2}px`;
+  const opacity = !isVisible ? 0.18 : 1;
+  const scale = isHovered || isSelected ? 1.06 : 1;
+  const transformOrigin = `${cx}px ${cy}px`;
 
   return (
     <g
@@ -583,36 +590,29 @@ function BuildingShape({ b, W, H, isVisible, isSelected, isHovered, onClick, onM
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* Building shadow — warm-tinted */}
-      <rect x={x + 5} y={y + 6} width={w} height={h} rx="3" fill="#5C3A1A" opacity="0.18" />
+      {/* Building shadow */}
+      <rect x={x + 4} y={y + 6} width={w} height={h} rx="6" fill="#0F172A" opacity="0.14" />
 
       {/* Building roof */}
       <rect
-        x={x} y={y} width={w} height={h} rx="3"
-        fill={isSelected ? '#FFFCF3' : '#FFFFFF'}
-        stroke={isSelected ? color : T.borderLt}
-        strokeWidth={isSelected ? 3 : 1.5}
+        x={x} y={y} width={w} height={h} rx="6"
+        fill={isSelected ? '#EFF6FF' : '#FFFFFF'}
+        stroke={isSelected ? color : color}
+        strokeWidth={isSelected ? 3.5 : 2}
       />
 
       {/* Solar panels overlay */}
       {showPanels && isVisible && (
-        <g>
-          <rect
-            x={x + 4} y={y + 4} width={w - 8} height={h - 8} rx="2"
-            fill="url(#solar-pattern)"
-            opacity={0.7}
-          />
-          {/* Highlight glow */}
-          <rect
-            x={x} y={y} width={w} height={h} rx="3"
-            fill="none" stroke={color} strokeWidth="0.5" opacity="0.4"
-          />
-        </g>
+        <rect
+          x={x + 5} y={y + 5} width={w - 10} height={h - 10} rx="4"
+          fill="url(#solar-pattern)"
+          opacity={0.55}
+        />
       )}
 
-      {/* Suitability indicator dot */}
+      {/* Suitability dot (top-end corner) */}
       <circle
-        cx={x + w - 8} cy={y + 8} r="4"
+        cx={x + w - 9} cy={y + 9} r="5.5"
         fill={color}
         className={isVisible ? 'pulse-anim' : ''}
       />
@@ -621,18 +621,18 @@ function BuildingShape({ b, W, H, isVisible, isSelected, isHovered, onClick, onM
       {showLabels && (
         <g style={{ pointerEvents: 'none' }}>
           <text
-            x={x + w/2} y={y + h/2 - 2}
-            textAnchor="middle" fontSize="11" fontWeight="700"
+            x={x + w / 2} y={y + h / 2 - 2}
+            textAnchor="middle" fontSize="14" fontWeight="700"
             fill={T.text} fontFamily='"Tajawal", sans-serif'
           >
-            {b.name_ar.length > 15 ? b.name_ar.substring(0, 14) + '…' : b.name_ar}
+            {b.name_ar.length > 16 ? b.name_ar.substring(0, 15) + '…' : b.name_ar}
           </text>
           <text
-            x={x + w/2} y={y + h/2 + 11}
-            textAnchor="middle" fontSize="9"
-            fill={color} fontFamily='"Tajawal", sans-serif' fontWeight="600"
+            x={x + w / 2} y={y + h / 2 + 14}
+            textAnchor="middle" fontSize="11"
+            fill={color} fontFamily='"Tajawal", sans-serif' fontWeight="700"
           >
-            {b.area} م² · {calculatePotential(b.area)} ك.و
+            {calculatePotential(b.area)} ك.و
           </text>
         </g>
       )}
