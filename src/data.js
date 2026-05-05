@@ -329,3 +329,44 @@ export const TOTALS = {
 };
 
 export const ACTUAL_DEMAND = 440;
+
+// ============ ECONOMIC ASSUMPTIONS ============
+// Calibrated against the Solar Decision Hub vendor quotes (Qalaat
+// 500kW for 772M IQD ≈ 1.55M IQD/kW). Maintenance and price
+// growth match the defaults used in that dashboard.
+export const COST_DEFAULTS = {
+  costPerKw:           1500000, // IQD per kW installed
+  maintenancePerKwYear:  30000, // IQD per kW per year
+  electricityPrice:        120, // IQD per kWh
+  annualPriceIncrease:       5, // % per year
+  degradationRate:         0.5, // % per year (panel degradation)
+  sunshineHours:             6, // peak-equivalent hours per day
+};
+
+// 25-year payback / ROI / CO₂ for a system of given kW capacity.
+export const calculateBuildingROI = (capacity_kw, params = COST_DEFAULTS) => {
+  const investment   = capacity_kw * params.costPerKw;
+  const annualMaint  = capacity_kw * params.maintenancePerKwYear;
+  const annualProd_kWh = capacity_kw * params.sunshineHours * 365;
+
+  let cumul = -investment;
+  let paybackYear = null;
+
+  for (let year = 1; year <= 25; year++) {
+    const deg     = Math.pow(1 - params.degradationRate / 100, year);
+    const priceM  = Math.pow(1 + params.annualPriceIncrease / 100, year);
+    const savings = annualProd_kWh * deg * params.electricityPrice * priceM;
+    const maint   = annualMaint * priceM;
+    cumul += savings - maint;
+    if (paybackYear === null && cumul >= 0) paybackYear = year;
+  }
+
+  return {
+    investment,
+    annualProduction_kWh: annualProd_kWh,
+    paybackYear,                 // null if it never recoups within 25 years
+    netAfter25: cumul,           // can be negative
+    roi25Pct: (cumul / investment) * 100,
+    co2Saved25_tons: (annualProd_kWh * 25 * 0.45) / 1000,
+  };
+};

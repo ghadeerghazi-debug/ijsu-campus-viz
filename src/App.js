@@ -5,23 +5,35 @@ import {
   Sparkles, Eye, Maximize2, Satellite, Tag, LayoutGrid,
   Move, Copy, RotateCcw, Check
 } from 'lucide-react';
-import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skySvgStops, sunArc, aerialPos, MAP_POSITIONS } from './data';
+import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skySvgStops, sunArc, aerialPos, MAP_POSITIONS, calculateBuildingROI } from './data';
 
 // =================================================================
 // MAIN APP
 // =================================================================
 export default function App() {
-  const [view, setView] = useState('map'); // 'map' | 'flow'
+  const [view, setView] = useState('map'); // 'map' | 'aerial' | 'flow'
   const [hour, setHour] = useState(12);
   const [weather, setWeather] = useState('sunny');
+  const [flowBuilding, setFlowBuilding] = useState(null); // null = whole campus
+
+  const goToFlow = (b) => {
+    setFlowBuilding(b);
+    setView('flow');
+  };
 
   return (
     <div dir="rtl" lang="ar" className="app-shell">
       <Sidebar view={view} setView={setView} />
       <main className="app-main">
-        {view === 'map' && <CampusMap />}
-        {view === 'aerial' && <AerialView />}
-        {view === 'flow' && <EnergyFlow hour={hour} setHour={setHour} weather={weather} setWeather={setWeather} />}
+        {view === 'map' && <CampusMap goToFlow={goToFlow} />}
+        {view === 'aerial' && <AerialView goToFlow={goToFlow} />}
+        {view === 'flow' && (
+          <EnergyFlow
+            hour={hour} setHour={setHour}
+            weather={weather} setWeather={setWeather}
+            flowBuilding={flowBuilding} setFlowBuilding={setFlowBuilding}
+          />
+        )}
       </main>
     </div>
   );
@@ -122,7 +134,7 @@ function loadAerialPositions() {
   }
 }
 
-function AerialView() {
+function AerialView({ goToFlow }) {
   const [selected, setSelected] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [showLabels, setShowLabels] = useState(false);
@@ -344,7 +356,13 @@ function AerialView() {
           : 'مواقع العلامات قابلة للتعديل — فعّل وضع التعديل واسحب كل علامة فوق مبناها.'}
       </p>
 
-      {selected && <BuildingDetail building={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <BuildingDetail
+          building={selected}
+          onClose={() => setSelected(null)}
+          onViewFlow={goToFlow}
+        />
+      )}
     </div>
   );
 }
@@ -352,7 +370,7 @@ function AerialView() {
 // =================================================================
 // CAMPUS MAP VIEW
 // =================================================================
-function CampusMap() {
+function CampusMap({ goToFlow }) {
   const [selected, setSelected] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [showPanels, setShowPanels] = useState(true);
@@ -485,7 +503,13 @@ function CampusMap() {
       </div>
 
       {/* Detail modal */}
-      {selected && <BuildingDetail building={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <BuildingDetail
+          building={selected}
+          onClose={() => setSelected(null)}
+          onViewFlow={goToFlow}
+        />
+      )}
     </div>
   );
 }
@@ -863,7 +887,7 @@ function BuildingRankings({ buildings, setSelected }) {
 // =================================================================
 // BUILDING DETAIL MODAL
 // =================================================================
-function BuildingDetail({ building, onClose }) {
+function BuildingDetail({ building, onClose, onViewFlow }) {
   const colorMap = { excellent: T.green, good: T.amber, medium: T.coral };
   const color = colorMap[building.suitability];
   const labelMap = { excellent: 'ممتاز للتركيب ⭐', good: 'جيد للتركيب', medium: 'مناسب مع تخطيط' };
@@ -972,6 +996,7 @@ function BuildingDetail({ building, onClose }) {
             borderRight: `4px solid ${color}`,
             borderRadius: '10px',
             padding: '16px',
+            marginBottom: onViewFlow ? '14px' : 0,
           }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
               <Info size={18} color={color} style={{ flexShrink: 0, marginTop: '2px' }} />
@@ -985,6 +1010,35 @@ function BuildingDetail({ building, onClose }) {
               </div>
             </div>
           </div>
+
+          {/* Primary action: jump to per-building energy flow */}
+          {onViewFlow && (
+            <button
+              onClick={() => { onViewFlow(building); onClose(); }}
+              style={{
+                width: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                padding: '14px 18px',
+                background: `linear-gradient(135deg, ${T.blue}, ${T.blueLt})`,
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '14px',
+                cursor: 'pointer',
+                fontFamily: '"Reem Kufi", sans-serif',
+                fontWeight: 700,
+                fontSize: '14px',
+                letterSpacing: '0.02em',
+                boxShadow: '0 8px 20px rgba(37, 99, 235, 0.30)',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+              }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <Activity size={18} strokeWidth={2.4} />
+              عرض المحاكاة الاقتصادية لهذا المبنى
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -1012,12 +1066,18 @@ function DetailStat({ label, value, unit, color, highlight }) {
 // =================================================================
 // ENERGY FLOW VIEW
 // =================================================================
-function EnergyFlow({ hour, setHour, weather, setWeather }) {
+function EnergyFlow({ hour, setHour, weather, setWeather, flowBuilding, setFlowBuilding }) {
   const [autoplay, setAutoplay] = useState(false);
 
-  const totalCapacity = 500; // kW (using Qalaat best-fit)
-  const dayData = useMemo(() => generateDayData(totalCapacity, weather), [weather]);
+  // Capacity + display label depend on whether the user is looking at
+  // the whole campus (default 500 kW Qalaat-sized system) or a single
+  // building (its own rooftop potential).
+  const isWholeCampus = !flowBuilding;
+  const capacity_kw = isWholeCampus ? 500 : calculatePotential(flowBuilding.area);
+
+  const dayData = useMemo(() => generateDayData(capacity_kw, weather), [capacity_kw, weather]);
   const current = dayData[hour];
+  const roi = useMemo(() => calculateBuildingROI(capacity_kw), [capacity_kw]);
 
   // Autoplay
   useEffect(() => {
@@ -1036,12 +1096,51 @@ function EnergyFlow({ hour, setHour, weather, setWeather }) {
   return (
     <div className="fade-in">
       <HeroCard
-        eyebrow="تدفق الطاقة"
-        title="محاكاة على مدار 24 ساعة"
-        subtitle="استخدم شريط الوقت لمشاهدة كيف تتدفق الطاقة من الألواح إلى البطاريات والمباني — مع تغير حالة الجو والشمس."
+        eyebrow={isWholeCampus ? 'تدفق الطاقة' : 'محاكاة لمبنى محدد'}
+        title={isWholeCampus ? 'محاكاة على مدار 24 ساعة' : flowBuilding.name_ar}
+        subtitle={isWholeCampus
+          ? 'اختر مبنى محدد لعرض جدواه الاقتصادية، أو اترك "كامل الحرم" لمحاكاة النظام الكلي.'
+          : `${capacity_kw} ك.و إمكانية · ${flowBuilding.area} م² · ${flowBuilding.name_en}`}
         statValue={`${String(hour).padStart(2, '0')}:00`}
         statLabel={weather === 'cloudy' ? 'غائم' : weather === 'night' ? 'ليل' : 'مشمس'}
       />
+
+      {/* Building selector — chips */}
+      <div style={{
+        background: T.bgPanel,
+        border: `1px solid ${T.border}`,
+        borderRadius: '16px',
+        padding: '14px 16px',
+        marginBottom: '20px',
+        boxShadow: T.shadow,
+      }}>
+        <div style={{ fontSize: '11px', color: T.textDim, fontWeight: 700, letterSpacing: '0.18em', marginBottom: '10px' }}>
+          اختر النطاق
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <BuildingChip
+            label="كامل الحرم"
+            active={isWholeCampus}
+            onClick={() => setFlowBuilding(null)}
+            color={T.blue}
+          />
+          {BUILDINGS.map(b => {
+            const colorMap = { excellent: T.green, good: T.amber, medium: T.coral };
+            return (
+              <BuildingChip
+                key={b.id}
+                label={b.name_ar}
+                active={flowBuilding?.id === b.id}
+                onClick={() => setFlowBuilding(b)}
+                color={colorMap[b.suitability]}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Economic Feasibility Card — only when a specific building is selected */}
+      {!isWholeCampus && <EconomicCard roi={roi} capacity_kw={capacity_kw} />}
 
       {/* Time controls */}
       <div style={{
@@ -1146,6 +1245,128 @@ function EnergyFlow({ hour, setHour, weather, setWeather }) {
 
       {/* Daily curve */}
       <DailyChart dayData={dayData} currentHour={hour} weather={weather} />
+    </div>
+  );
+}
+
+function BuildingChip({ label, active, onClick, color }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '7px 13px',
+        fontSize: '12px',
+        fontWeight: 700,
+        fontFamily: '"Reem Kufi", sans-serif',
+        borderRadius: '10px',
+        border: `1.5px solid ${active ? color : T.border}`,
+        background: active ? color : T.bgPanel,
+        color: active ? '#FFFFFF' : T.text,
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        boxShadow: active ? `0 4px 10px ${color}55` : 'none',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function EconomicCard({ roi, capacity_kw }) {
+  const profitable = roi.netAfter25 > 0;
+  const fmtIQD = (n) => {
+    if (n >= 1e9) return `${(n / 1e9).toFixed(2)} مليار`;
+    if (n >= 1e6) return `${(n / 1e6).toFixed(0)} مليون`;
+    return n.toLocaleString('ar');
+  };
+  return (
+    <div className="stagger" style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+      gap: '14px',
+      marginBottom: '24px',
+    }}>
+      <KpiTile
+        icon={DollarIcon} accent={T.blue}
+        label="الاستثمار الأولي"
+        value={fmtIQD(roi.investment)}
+        unit="د.ع"
+      />
+      <KpiTile
+        icon={Activity} accent={roi.paybackYear !== null && roi.paybackYear < 12 ? T.green : T.amber}
+        label="فترة الاسترداد"
+        value={roi.paybackYear !== null ? roi.paybackYear : '> 25'}
+        unit={roi.paybackYear !== null ? 'سنة' : 'سنة'}
+      />
+      <KpiTile
+        icon={Sparkles} accent={profitable ? T.green : T.coral}
+        label="صافي العائد بعد ٢٥ سنة"
+        value={`${(roi.netAfter25 / 1e9).toFixed(2)}`}
+        unit="مليار د.ع"
+        highlight
+      />
+      <KpiTile
+        icon={Zap} accent={profitable ? T.green : T.coral}
+        label="العائد على الاستثمار"
+        value={`${roi.roi25Pct.toFixed(0)}٪`}
+        unit="على ٢٥ سنة"
+      />
+      <KpiTile
+        icon={Sun} accent={T.amber}
+        label="الإنتاج السنوي"
+        value={`${(roi.annualProduction_kWh / 1000).toFixed(0)}`}
+        unit="ألف ك.و·س"
+      />
+      <KpiTile
+        icon={Battery} accent={T.green}
+        label="ثاني أكسيد الكربون الموفّر"
+        value={`${Math.round(roi.co2Saved25_tons).toLocaleString('ar')}`}
+        unit="طن على ٢٥ سنة"
+      />
+    </div>
+  );
+}
+
+// Inline currency icon (lucide doesn't ship one for IQD)
+function DollarIcon({ size = 16, color = '#0F172A', strokeWidth = 2 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="2" x2="12" y2="22"></line>
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+    </svg>
+  );
+}
+
+function KpiTile({ icon: Icon, label, value, unit, accent, highlight }) {
+  return (
+    <div style={{
+      background: highlight ? `linear-gradient(135deg, ${accent}18, ${accent}06), ${T.bgPanel}` : T.bgPanel,
+      border: `1px solid ${highlight ? accent + '55' : T.border}`,
+      borderRadius: '14px',
+      padding: '16px',
+      borderTop: `3px solid ${accent}`,
+      boxShadow: T.shadow,
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        width: '32px', height: '32px',
+        background: accent + '18',
+        color: accent,
+        borderRadius: '10px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: '10px',
+      }}>
+        <Icon size={16} color={accent} strokeWidth={2.2} />
+      </div>
+      <div style={{ fontSize: '11px', color: T.textMuted, fontWeight: 600 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
+        <span style={{ fontFamily: '"Reem Kufi", sans-serif', fontSize: '22px', fontWeight: 700, color: highlight ? accent : T.text, lineHeight: 1 }}>
+          {value}
+        </span>
+        <span style={{ fontSize: '11px', color: T.textDim }}>{unit}</span>
+      </div>
     </div>
   );
 }
