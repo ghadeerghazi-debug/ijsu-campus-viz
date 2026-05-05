@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Sun, Map, Activity, Building2, Zap, Battery, Cloud, Moon,
   X, Play, Pause, Info,
-  Sparkles, Eye, Maximize2, Satellite, Tag, LayoutGrid
+  Sparkles, Eye, Maximize2, Satellite, Tag, LayoutGrid,
+  Move, Copy, RotateCcw, Check
 } from 'lucide-react';
 import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skySvgStops, sunArc, aerialPos, MAP_POSITIONS } from './data';
 
@@ -107,14 +108,32 @@ function HeroCard({ eyebrow, title, subtitle, statValue, statLabel }) {
 }
 
 // =================================================================
-// AERIAL VIEW — interactive markers on real Google Earth photo
+// AERIAL VIEW — interactive markers on real Google Earth photo,
+// with drag-to-position and per-building highlight overlay.
 // =================================================================
+const AERIAL_STORAGE_KEY = 'ijsu-campus-aerial-positions-v1';
+
+function loadAerialPositions() {
+  try {
+    const raw = localStorage.getItem(AERIAL_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
 function AerialView() {
   const [selected, setSelected] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [showLabels, setShowLabels] = useState(false);
   const [showPanels, setShowPanels] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [editMode, setEditMode] = useState(false);
+  const [draggingId, setDraggingId] = useState(null);
+  const [overrides, setOverrides] = useState(() => loadAerialPositions());
+  const [copiedFlash, setCopiedFlash] = useState(false);
+
+  const canvasRef = useRef(null);
 
   const colorMap = { excellent: T.green, good: T.amber, medium: T.coral };
   const filtered = useMemo(() => {
@@ -122,25 +141,102 @@ function AerialView() {
     return BUILDINGS.filter(b => b.suitability === filter);
   }, [filter]);
 
+  const posOf = (b) => overrides[b.id] || aerialPos(b);
+
+  // Persist to localStorage on change
+  useEffect(() => {
+    try { localStorage.setItem(AERIAL_STORAGE_KEY, JSON.stringify(overrides)); } catch {}
+  }, [overrides]);
+
+  // Approximate building footprint highlight size (% of canvas).
+  // Buildings range 84 m² → 1400 m²; sqrt-scale to keep small ones visible.
+  const highlightSize = (area) => {
+    const min = 5, max = 14;
+    const s = Math.sqrt(area / 1400);
+    return min + s * (max - min);
+  };
+
+  // ----- Drag handlers (pointer events = mouse + touch) -----
+  const onPointerDownPin = (b) => (e) => {
+    if (!editMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setDraggingId(b.id);
+  };
+  const onPointerMovePin = (e) => {
+    if (!draggingId || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = Math.max(2, Math.min(98, xPct));
+    const y = Math.max(2, Math.min(98, yPct));
+    setOverrides(p => ({ ...p, [draggingId]: { x, y } }));
+  };
+  const onPointerUpPin = (e) => {
+    if (!draggingId) return;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    setDraggingId(null);
+  };
+
+  const copyPositions = () => {
+    const json = JSON.stringify(
+      BUILDINGS.reduce((acc, b) => {
+        acc[b.id] = posOf(b);
+        return acc;
+      }, {}),
+      null, 2
+    );
+    navigator.clipboard?.writeText(json);
+    setCopiedFlash(true);
+    setTimeout(() => setCopiedFlash(false), 1600);
+  };
+
+  const resetPositions = () => {
+    if (window.confirm('إعادة جميع المواقع إلى الإعدادات الافتراضية؟')) {
+      setOverrides({});
+    }
+  };
+
   return (
     <div className="fade-in">
       <HeroCard
         eyebrow="عرض جوي تفاعلي"
         title="الصورة الفعلية للحرم"
-        subtitle="اضغط على أي علامة لعرض تفاصيل المبنى وصورة سطحه. كل دائرة تمثل مبنى من المباني الـ14، ولونها يعكس مدى ملاءمته للتركيب."
+        subtitle={editMode
+          ? 'اسحب أي علامة لتحريكها فوق المبنى الصحيح. تُحفظ المواقع تلقائياً، ويمكنك نسخها أو إعادتها.'
+          : 'اضغط على أي علامة لعرض التفاصيل، أو فعّل وضع التعديل لتحريك العلامات إلى مواقعها الفعلية على الصورة.'}
         statValue={TOTALS.buildingCount}
         statLabel="مبنى محدد"
       />
 
       <div className="aerial-controls">
+        <button onClick={() => setEditMode(s => !s)} className={`aerial-toggle ${editMode ? 'is-on' : ''}`}>
+          <Move size={14} strokeWidth={2.2} />
+          {editMode ? 'إنهاء التعديل' : 'وضع التعديل'}
+        </button>
         <button onClick={() => setShowLabels(s => !s)} className={`aerial-toggle ${showLabels ? 'is-on' : ''}`}>
           <Tag size={14} strokeWidth={2.2} />
           {showLabels ? 'إخفاء الأسماء' : 'عرض الأسماء'}
         </button>
         <button onClick={() => setShowPanels(s => !s)} className={`aerial-toggle ${showPanels ? 'is-on' : ''}`}>
           <LayoutGrid size={14} strokeWidth={2.2} />
-          {showPanels ? 'إخفاء الألواح المقترحة' : 'عرض الألواح المقترحة'}
+          {showPanels ? 'إخفاء الألواح' : 'عرض الألواح'}
         </button>
+
+        {editMode && (
+          <>
+            <button onClick={copyPositions} className="aerial-toggle">
+              {copiedFlash ? <Check size={14} strokeWidth={2.5} /> : <Copy size={14} strokeWidth={2.2} />}
+              {copiedFlash ? 'تم النسخ' : 'نسخ المواقع'}
+            </button>
+            <button onClick={resetPositions} className="aerial-toggle">
+              <RotateCcw size={14} strokeWidth={2.2} />
+              إعادة افتراضي
+            </button>
+          </>
+        )}
+
         <div style={{ flex: 1 }} />
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <span style={{ fontSize: '11px', color: T.textDim, fontWeight: 600, letterSpacing: '0.05em' }}>تصفية:</span>
@@ -168,39 +264,68 @@ function AerialView() {
         </div>
       </div>
 
-      <div className="aerial-canvas">
-        <img src="./photos/campus-aerial.jpg" alt="Aerial view of IJSU campus" />
+      <div
+        className="aerial-canvas"
+        ref={canvasRef}
+        onPointerMove={onPointerMovePin}
+        onPointerUp={onPointerUpPin}
+        onPointerCancel={onPointerUpPin}
+      >
+        <img src="./photos/campus-aerial.jpg" alt="Aerial view of IJSU campus" draggable={false} />
         <div className="aerial-watermark">IJSU · Google Earth</div>
 
+        {/* Highlight rectangle for the active (hovered or selected) building */}
+        {(() => {
+          const active = hovered || selected;
+          if (!active) return null;
+          const pos = posOf(active);
+          const wPct = highlightSize(active.area);
+          const hPct = wPct * 0.85;
+          return (
+            <div
+              key={`hl-${active.id}`}
+              className="pin-highlight"
+              style={{
+                left: `${pos.x}%`,
+                top: `${pos.y}%`,
+                width: `${wPct}%`,
+                aspectRatio: `${wPct} / ${hPct}`,
+              }}
+            />
+          );
+        })()}
+
         {BUILDINGS.map((b, idx) => {
-          const pos = aerialPos(b);
+          const pos = posOf(b);
           const isVisible = filtered.includes(b);
           const isSelected = selected?.id === b.id;
           const isHovered = hovered?.id === b.id;
+          const isDragging = draggingId === b.id;
           const color = colorMap[b.suitability];
           const rank = idx + 1;
 
           return (
             <div
               key={b.id}
-              className={`pin ${isSelected ? 'is-selected' : ''}`}
+              className={`pin ${isSelected ? 'is-selected' : ''} ${editMode ? 'is-edit' : ''} ${isDragging ? 'is-dragging' : ''}`}
               style={{
                 top: `${pos.y}%`,
-                insetInlineStart: `${pos.x}%`,
+                left: `${pos.x}%`,
                 opacity: isVisible ? 1 : 0.18,
                 animationDelay: `${idx * 35}ms`,
                 '--c': color,
                 pointerEvents: isVisible ? 'auto' : 'none',
               }}
-              onClick={() => setSelected(b)}
+              onPointerDown={onPointerDownPin(b)}
+              onClick={() => { if (!editMode && !isDragging) setSelected(b); }}
               onMouseEnter={() => setHovered(b)}
               onMouseLeave={() => setHovered(null)}
             >
-              {showPanels && isVisible && <div className="pin-panel-ring" />}
+              {showPanels && isVisible && !editMode && <div className="pin-panel-ring" />}
               <div className="pin-dot" style={{ background: color }}>
                 {rank}
               </div>
-              {(showLabels || isHovered) && (
+              {(showLabels || isHovered || isDragging) && (
                 <div className="pin-label">
                   {b.name_ar} · {calculatePotential(b.area)} ك.و
                 </div>
@@ -214,7 +339,9 @@ function AerialView() {
         textAlign: 'center', fontSize: '12px', color: T.textDim,
         marginTop: '14px', fontStyle: 'italic'
       }}>
-        مواقع العلامات تقريبية — يمكن تعديلها لتطابق المباني تماماً
+        {editMode
+          ? 'بعد ضبط المواقع: اضغط "نسخ المواقع" وأرسلها لي لتثبيتها بشكل دائم.'
+          : 'مواقع العلامات قابلة للتعديل — فعّل وضع التعديل واسحب كل علامة فوق مبناها.'}
       </p>
 
       {selected && <BuildingDetail building={selected} onClose={() => setSelected(null)} />}

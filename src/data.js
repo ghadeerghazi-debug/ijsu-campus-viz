@@ -68,20 +68,28 @@ export const sunArc = (hour, viewW = 1200, viewH = 500) => {
   return { x, y };
 };
 
-// Maps stylized BUILDINGS x/y (0..100 grid used by the SVG map)
-// onto approximate positions on the real aerial photo. The campus
-// in the photo occupies roughly x: 28..76, y: 28..68. Pins can be
-// nudged per-building below if a specific marker lands wrong.
-const AERIAL_OVERRIDES = {
-  // id: { x, y }   — % coords on the aerial photo
+// Best-guess seed positions on the aerial photo (% from left/top).
+// The user can drag pins to refine them in the Aerial View; the
+// drag positions persist to localStorage and can be copied back
+// here for a permanent commit.
+export const AERIAL_DEFAULTS = {
+  pres1:    { x: 46, y: 28 },
+  pres2:    { x: 55, y: 32 },
+  admin1:   { x: 62, y: 42 },
+  admin2:   { x: 67, y: 50 },
+  admin3a:  { x: 50, y: 50 },
+  admin3b:  { x: 44, y: 50 },
+  admin4:   { x: 41, y: 56 },
+  tech:     { x: 38, y: 44 },
+  garage:   { x: 35, y: 64 },
+  cafe:     { x: 62, y: 60 },
+  sadr:     { x: 64, y: 50 },
+  library:  { x: 64, y: 36 },
+  pharm:    { x: 33, y: 38 },
+  arts:     { x: 70, y: 44 },
 };
 export const aerialPos = (b) => {
-  const o = AERIAL_OVERRIDES[b.id];
-  if (o) return o;
-  return {
-    x: 28 + (b.x / 95) * 48,
-    y: 28 + (b.y / 65) * 40,
-  };
+  return AERIAL_DEFAULTS[b.id] || { x: 50, y: 50 };
 };
 
 // Stylized map positions — every block gets equal space on the
