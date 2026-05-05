@@ -1,108 +1,74 @@
-// ============ THEME — Sunlit Daytime ============
-// Warm cream paper, sky blue, golden amber. Designed to feel like
-// sunlight on architectural drawings; the page background mood-shifts
-// with the simulation clock (see skyGradient below).
+// ============ THEME — Mobile-app blue/white ============
+// Clean white surfaces, navy hero cards, vivid brand blue, neutral
+// slate text. Designed to feel like a polished iOS app.
 export const T = {
-  // Surfaces (warm light)
-  bg:        '#FFF8EE',  // warm cream paper
-  bgPanel:   '#FFFFFF',  // pure white card (lifts on cream)
-  bgCard:    '#FBF3DF',  // tinted cream for nested cards
-  bgHover:   '#F4E5C2',  // peachy hover
-  bgLight:   '#FFFCF3',  // pale cream surface
+  // Surfaces
+  bg:        '#FFFFFF',
+  bgPanel:   '#F8FAFC',  // very pale slate
+  bgCard:    '#FFFFFF',
+  bgHover:   '#F1F5F9',
+  bgLight:   '#FFFFFF',
+  bgDark:    '#0F172A',  // deep navy hero
+  bgMid:     '#1E293B',  // slate hero variant
 
-  // Sun energy (warm)
-  amber:     '#E8893E',  // warm amber/orange — primary accent
-  amberLt:   '#F5BB52',  // golden hour
-  amberDk:   '#B8651E',  // deep amber
+  // Brand blues
+  blue:      '#2563EB',
+  blueLt:    '#3B82F6',
+  blueDk:    '#1D4ED8',
+  cyan:      '#06B6D4',
+  sky:       '#0EA5E9',
 
-  // Sky / cool accents
-  teal:      '#5C9893',  // muted teal
-  cyan:      '#5DA5C2',  // muted sky cyan
-  sky:       '#7AC0E8',  // bright sky blue
-  green:     '#7C9F58',  // sage green
+  // Accents
+  amber:     '#F59E0B',
+  amberLt:   '#FCD34D',
+  amberDk:   '#B45309',
+  teal:      '#14B8A6',
+  green:     '#10B981',
+  coral:     '#F43F5E',
+  red:       '#EF4444',
+  purple:    '#A855F7',
 
-  // Warm status
-  coral:     '#E07B5A',
-  red:       '#C44A36',
-  purple:    '#8B6BB8',
-
-  // Text (dark warm on light)
-  text:      '#2A1F14',  // warm dark brown
-  textMuted: '#6F5D49',  // medium warm gray
-  textDim:   '#9A8770',  // light warm gray
+  // Text
+  text:      '#0F172A',  // deep navy
+  textMuted: '#475569',  // slate
+  textDim:   '#94A3B8',  // light slate
+  textOnDark:'#F8FAFC',
 
   // Borders
-  border:    '#E5D4B0',  // warm tan border
-  borderLt:  '#D2BC93',  // darker warm border
+  border:    '#E2E8F0',
+  borderLt:  '#CBD5E1',
 
-  // Shadows for cards (warm-tinted, not gray)
-  shadow:    '0 4px 16px rgba(184, 101, 30, 0.10), 0 1px 3px rgba(120, 90, 50, 0.08)',
-  shadowDeep:'0 12px 32px rgba(184, 101, 30, 0.18), 0 4px 8px rgba(120, 90, 50, 0.10)',
+  // Shadows (cool blue-tinted)
+  shadow:     '0 4px 16px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04)',
+  shadowDeep: '0 16px 40px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.06)',
+  shadowBlue: '0 8px 24px rgba(37, 99, 235, 0.18)',
 };
 
-// ============ MOOD-SHIFTING SKY ============
-// Returns a CSS background gradient for the App root, based on
-// simulation hour and weather. The page literally shifts color as
-// the user scrubs through the 24-hour simulation.
-export const skyGradient = (hour, weather) => {
-  if (weather === 'cloudy') {
-    return 'linear-gradient(180deg, #BCC8D5 0%, #D8D2C4 55%, #F0E8D8 100%)';
-  }
-  if (weather === 'night' || hour < 5 || hour >= 22) {
-    return 'linear-gradient(180deg, #1A2549 0%, #3A3863 50%, #5C4E78 90%, #826FA0 100%)';
-  }
-  if (hour >= 5 && hour < 7) {
-    // Sunrise — purple → orange → cream
-    return 'linear-gradient(180deg, #826FA0 0%, #E8893E 30%, #F5BB52 60%, #FFF1D9 100%)';
-  }
-  if (hour >= 7 && hour < 10) {
-    // Morning
-    return 'linear-gradient(180deg, #B5DBED 0%, #DDEEF7 50%, #FFF8EE 100%)';
-  }
-  if (hour >= 10 && hour < 15) {
-    // Noon
-    return 'linear-gradient(180deg, #7AC0E8 0%, #B5DBED 40%, #FFF8EE 100%)';
-  }
-  if (hour >= 15 && hour < 17) {
-    // Golden hour
-    return 'linear-gradient(180deg, #F5BB52 0%, #F8D484 50%, #FFFCF3 100%)';
-  }
-  if (hour >= 17 && hour < 19) {
-    // Sunset
-    return 'linear-gradient(180deg, #C04A38 0%, #E8893E 30%, #F5BB52 60%, #FFD9A8 100%)';
-  }
-  // 19-22 — Dusk
-  return 'linear-gradient(180deg, #5C4E78 0%, #8E6BAA 30%, #D85C4C 70%, #F5BB52 95%, #FFD9A8 100%)';
-};
-
-// Sky gradient stops for SVG <linearGradient> use (FlowDiagram).
-// Returns [topColor, bottomColor] approximations.
+// ============ SKY GRADIENT STOPS for FlowDiagram SVG ============
+// Keeps the in-diagram sky colorful; root page stays white.
 export const skySvgStops = (hour, weather) => {
-  if (weather === 'cloudy')  return ['#BCC8D5', '#F0E8D8'];
-  if (weather === 'night' || hour < 5 || hour >= 22) return ['#1A2549', '#5C4E78'];
-  if (hour < 7)   return ['#826FA0', '#FFF1D9'];
-  if (hour < 10)  return ['#B5DBED', '#FFF8EE'];
-  if (hour < 15)  return ['#7AC0E8', '#FFF8EE'];
-  if (hour < 17)  return ['#F5BB52', '#FFFCF3'];
-  if (hour < 19)  return ['#C04A38', '#FFD9A8'];
-  return ['#5C4E78', '#FFD9A8'];
+  if (weather === 'cloudy')  return ['#94A3B8', '#CBD5E1'];
+  if (weather === 'night' || hour < 5 || hour >= 22) return ['#0F172A', '#334155'];
+  if (hour < 7)   return ['#7C3AED', '#FCD34D']; // sunrise
+  if (hour < 10)  return ['#3B82F6', '#DBEAFE']; // morning
+  if (hour < 15)  return ['#0EA5E9', '#F0F9FF']; // noon
+  if (hour < 17)  return ['#F59E0B', '#FED7AA']; // golden
+  if (hour < 19)  return ['#DC2626', '#FCD34D']; // sunset
+  return ['#1E293B', '#7C3AED']; // dusk
 };
 
 // Sun position arc across SVG viewbox 0..1200 by 0..500.
 // Returns null if the sun is below the horizon (night).
 export const sunArc = (hour, viewW = 1200, viewH = 500) => {
   if (hour < 6 || hour > 18) return null;
-  // 6am at left horizon, 12pm at top center, 6pm at right horizon
-  const t = (hour - 6) / 12; // 0..1
+  const t = (hour - 6) / 12;
   const x = 100 + t * (viewW - 200);
-  const arc = Math.sin(t * Math.PI); // 0 at edges, 1 at noon
+  const arc = Math.sin(t * Math.PI);
   const y = viewH * 0.6 - arc * (viewH * 0.45);
   return { x, y };
 };
 
 // ============ BUILDINGS DATA ============
-// 13 buildings with rooftop area, position on campus map (x,y % of 1000x600 viewbox),
-// estimated electrical demand, and photo references
 export const BUILDINGS = [
   {
     id: 'pres1',
@@ -275,8 +241,6 @@ export const BUILDINGS = [
 ];
 
 // ============ POTENTIAL CALCULATIONS ============
-// Standard: 1 m² × 0.55 (usable factor for solar) × 180 W/m² avg
-// → roughly 99 W per m² (or 99 kW per 1000 m²)
 export const calculatePotential = (area) => {
   const usableArea = area * 0.55;
   const watts_per_m2 = 180;
@@ -284,7 +248,6 @@ export const calculatePotential = (area) => {
 };
 
 // ============ DAILY ENERGY GENERATION CURVE ============
-// Simulates a typical sunny day in Baghdad (24 hours)
 export const generateDayData = (totalCapacity_kw, weather = 'sunny') => {
   const data = [];
   const cloudFactor = weather === 'cloudy' ? 0.4 : weather === 'night' ? 0 : 1;
@@ -292,17 +255,15 @@ export const generateDayData = (totalCapacity_kw, weather = 'sunny') => {
   for (let hour = 0; hour < 24; hour++) {
     let production = 0;
     if (hour >= 6 && hour <= 18) {
-      // Sun curve: bell-shaped peak at 12pm
-      const t = (hour - 12) / 6; // -1 to +1
+      const t = (hour - 12) / 6;
       production = totalCapacity_kw * Math.max(0, 1 - t * t) * cloudFactor;
     }
 
-    // Consumption pattern (university pattern: peak during work hours)
-    let consumption = 50; // base load (lights, fridges, etc.)
+    let consumption = 50;
     if (hour >= 7 && hour <= 17) {
-      consumption = 280 + 60 * Math.sin((hour - 7) / 10 * Math.PI); // peak ~12pm
+      consumption = 280 + 60 * Math.sin((hour - 7) / 10 * Math.PI);
     } else if (hour >= 18 && hour <= 22) {
-      consumption = 150; // evening
+      consumption = 150;
     }
 
     data.push({
@@ -315,7 +276,6 @@ export const generateDayData = (totalCapacity_kw, weather = 'sunny') => {
   return data;
 };
 
-// Total potential across all buildings
 export const TOTALS = {
   totalArea: BUILDINGS.reduce((s, b) => s + b.area, 0),
   totalPotential: BUILDINGS.reduce((s, b) => s + calculatePotential(b.area), 0),
@@ -323,4 +283,4 @@ export const TOTALS = {
   buildingCount: BUILDINGS.length,
 };
 
-export const ACTUAL_DEMAND = 440; // university's actual peak demand per technical specs
+export const ACTUAL_DEMAND = 440;

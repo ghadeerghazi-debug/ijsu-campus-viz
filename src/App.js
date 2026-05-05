@@ -4,111 +4,103 @@ import {
   X, Play, Pause, Info,
   Sparkles, Eye, Maximize2
 } from 'lucide-react';
-import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skyGradient, skySvgStops, sunArc } from './data';
+import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skySvgStops, sunArc } from './data';
 
 // =================================================================
 // MAIN APP
 // =================================================================
 export default function App() {
   const [view, setView] = useState('map'); // 'map' | 'flow'
-  // Hour + weather lifted up so the root background can mood-shift
-  // with the simulation clock — sunrise → noon → sunset → night.
   const [hour, setHour] = useState(12);
   const [weather, setWeather] = useState('sunny');
 
   return (
-    <div
-      dir="rtl"
-      lang="ar"
-      className="app-root"
-      style={{
-        minHeight: '100vh',
-        color: T.text,
-        background: skyGradient(hour, weather),
-        backgroundAttachment: 'fixed',
-      }}
-    >
-      <Header view={view} setView={setView} />
-      {view === 'map' && <CampusMap />}
-      {view === 'flow' && <EnergyFlow hour={hour} setHour={setHour} weather={weather} setWeather={setWeather} />}
-      <Footer />
+    <div dir="rtl" lang="ar" className="app-shell">
+      <Sidebar view={view} setView={setView} />
+      <main className="app-main">
+        {view === 'map' && <CampusMap />}
+        {view === 'flow' && <EnergyFlow hour={hour} setHour={setHour} weather={weather} setWeather={setWeather} />}
+      </main>
     </div>
   );
 }
 
 // =================================================================
-// HEADER
+// SIDEBAR
 // =================================================================
-function Header({ view, setView }) {
+function Sidebar({ view, setView }) {
+  const items = [
+    { id: 'map', label: 'خريطة الحرم', sub: 'Campus Map', icon: Map },
+    { id: 'flow', label: 'تدفق الطاقة', sub: 'Energy Flow', icon: Activity },
+  ];
   return (
-    <header style={{
-      borderBottom: `1px solid ${T.border}`,
-      background: 'rgba(255, 248, 238, 0.85)',
-      position: 'sticky', top: 0, zIndex: 100,
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      boxShadow: '0 1px 0 rgba(184, 101, 30, 0.08), 0 4px 12px rgba(184, 101, 30, 0.06)',
-    }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 24px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '46px', height: '46px',
-            background: `linear-gradient(135deg, ${T.amber}, ${T.amberLt})`,
-            borderRadius: '10px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 0 24px ${T.amber}55`,
-          }}>
-            <Sun size={26} color={T.bg} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h1 style={{
-              fontFamily: '"Amiri", serif', fontWeight: 700,
-              fontSize: '22px', lineHeight: 1.1, color: T.text
-            }}>
-              محاكاة الطاقة الشمسية
-              <span style={{ color: T.amber, margin: '0 10px' }}>·</span>
-              <span style={{ fontStyle: 'italic', color: T.amberLt }}>الحرم الجامعي</span>
-            </h1>
-            <p style={{ fontSize: '12px', color: T.textMuted, marginTop: '2px' }}>
-              جامعة الإمام الصادق · 14 مبنى · إمكانية ~1.7 ميجاواط
-            </p>
-          </div>
+    <aside className="app-sidebar">
+      <div className="brand">
+        <div className="brand-icon">
+          <Sun size={22} color={T.amberLt} strokeWidth={2.5} />
         </div>
-
-        <nav style={{
-          display: 'flex', gap: '4px',
-          padding: '4px',
-          background: T.bgCard,
-          borderRadius: '10px',
-          border: `1px solid ${T.border}`,
-        }}>
-          {[
-            { id: 'map', label: 'خريطة الحرم', icon: Map },
-            { id: 'flow', label: 'تدفق الطاقة', icon: Activity },
-          ].map(tab => {
-            const Icon = tab.icon;
-            const active = view === tab.id;
-            return (
-              <button key={tab.id} onClick={() => setView(tab.id)} style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '8px 16px', borderRadius: '8px',
-                background: active ? T.amber : 'transparent',
-                color: active ? T.bg : T.textMuted,
-                border: 'none', cursor: 'pointer',
-                fontSize: '13px', fontWeight: active ? 700 : 500,
-                fontFamily: '"Reem Kufi", sans-serif',
-                transition: 'all 0.2s',
-              }}>
-                <Icon size={15} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
+        <div className="brand-text">
+          <div className="brand-title">منظومة الطاقة الشمسية</div>
+          <div className="brand-sub">جامعة الإمام الصادق</div>
+        </div>
       </div>
-    </header>
+
+      <div className="sidebar-section-label">القوائم</div>
+      <nav className="sidebar-nav">
+        {items.map((item, idx) => {
+          const Icon = item.icon;
+          const active = view === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id)}
+              className={`nav-item ${active ? 'is-active' : ''}`}
+              style={{ animationDelay: `${idx * 70}ms` }}
+            >
+              <Icon size={20} strokeWidth={2} />
+              <div className="nav-label">
+                <span>{item.label}</span>
+                <span className="nav-sub">{item.sub}</span>
+              </div>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="sidebar-footer">
+        <div className="footer-stat">
+          <div className="footer-stat-value">14</div>
+          <div className="footer-stat-label">مبنى</div>
+        </div>
+        <div className="footer-stat">
+          <div className="footer-stat-value">1.7</div>
+          <div className="footer-stat-label">ميجاواط</div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// =================================================================
+// HERO CARD — dark navy feature panel
+// =================================================================
+function HeroCard({ eyebrow, title, subtitle, statValue, statLabel }) {
+  return (
+    <div className="hero-card">
+      <div className="hero-content">
+        <div className="hero-text">
+          {eyebrow && <div className="hero-eyebrow">{eyebrow}</div>}
+          <h1 className="hero-title">{title}</h1>
+          {subtitle && <p className="hero-sub">{subtitle}</p>}
+        </div>
+        {statValue !== undefined && (
+          <div className="hero-stat">
+            <div className="hero-stat-value">{statValue}</div>
+            {statLabel && <div className="hero-stat-label">{statLabel}</div>}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -128,10 +120,17 @@ function CampusMap() {
   }, [filter]);
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }} className="fade-in">
+    <div className="fade-in">
+      <HeroCard
+        eyebrow="خريطة الحرم"
+        title="14 مبنى · 9,659 م²"
+        subtitle="استعراض جميع مباني الجامعة مع تفاصيل كل سطح، الإمكانية الكهربائية، والملاحظات الهندسية للتركيب."
+        statValue={`~${TOTALS.totalPotential}`}
+        statLabel="ك.و إمكانية"
+      />
 
       {/* Quick stats band */}
-      <div style={{
+      <div className="stagger" style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: '14px', marginBottom: '24px',
       }}>
@@ -143,21 +142,31 @@ function CampusMap() {
 
       {/* Insight callout */}
       <div style={{
-        background: `linear-gradient(135deg, ${T.amber}15, ${T.cyan}10)`,
-        border: `1px solid ${T.amber}44`,
-        borderRadius: '12px',
-        padding: '16px 20px',
+        background: `linear-gradient(135deg, ${T.blue}10, ${T.cyan}08)`,
+        border: `1px solid ${T.blue}33`,
+        borderRadius: '16px',
+        padding: '18px 22px',
         marginBottom: '24px',
-        display: 'flex', gap: '14px', alignItems: 'flex-start'
+        display: 'flex', gap: '14px', alignItems: 'flex-start',
+        boxShadow: T.shadow,
       }}>
-        <Sparkles size={22} color={T.amber} style={{ flexShrink: 0, marginTop: '2px' }} />
+        <div style={{
+          width: '38px', height: '38px',
+          borderRadius: '10px',
+          background: `linear-gradient(135deg, ${T.blue}, ${T.blueLt})`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+          boxShadow: '0 4px 10px rgba(37, 99, 235, 0.25)',
+        }}>
+          <Sparkles size={18} color="#FFFFFF" strokeWidth={2.2} />
+        </div>
         <div>
-          <div style={{ fontFamily: '"Reem Kufi", sans-serif', fontWeight: 600, fontSize: '14px', color: T.amberLt, marginBottom: '4px' }}>
+          <div style={{ fontFamily: '"Reem Kufi", sans-serif', fontWeight: 700, fontSize: '14px', color: T.blueDk, marginBottom: '4px' }}>
             ملاحظة استراتيجية
           </div>
           <p style={{ fontSize: '13px', color: T.text, lineHeight: 1.7 }}>
-            الإمكانية النظرية للأسطح ({TOTALS.totalPotential.toLocaleString('ar')} ك.و) تفوق احتياج الجامعة الفعلي ({ACTUAL_DEMAND} ك.و) بنسبة <span style={{ color: T.amber, fontWeight: 700 }}>{Math.round((TOTALS.totalPotential / ACTUAL_DEMAND - 1) * 100)}%</span>.
-            <br />هذا يعني أنه بالإمكان تغطية الحاجة باستخدام <span style={{ color: T.amber, fontWeight: 700 }}>أكبر 4-5 مباني فقط</span>، مع توفير الباقي للتوسعات المستقبلية أو بيع الفائض للشبكة الوطنية.
+            الإمكانية النظرية للأسطح ({TOTALS.totalPotential.toLocaleString('ar')} ك.و) تفوق احتياج الجامعة الفعلي ({ACTUAL_DEMAND} ك.و) بنسبة <span style={{ color: T.blue, fontWeight: 700 }}>{Math.round((TOTALS.totalPotential / ACTUAL_DEMAND - 1) * 100)}%</span>.
+            <br />هذا يعني أنه بالإمكان تغطية الحاجة باستخدام <span style={{ color: T.blue, fontWeight: 700 }}>أكبر 4-5 مباني فقط</span>، مع توفير الباقي للتوسعات المستقبلية أو بيع الفائض للشبكة الوطنية.
           </p>
         </div>
       </div>
@@ -318,13 +327,13 @@ function CampusSVG({ buildings, allBuildings, selected, setSelected, hovered, se
   const W = 1200, H = 750;
 
   return (
-    <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#F0E0BC' }}>
+    <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: '#EFF6FF' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-        {/* Ground gradient — sand/grass */}
+        {/* Ground gradient — campus terrain (cool slate) */}
         <defs>
           <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#E8D5A0" />
-            <stop offset="100%" stopColor="#C9B879" />
+            <stop offset="0%" stopColor="#DBEAFE" />
+            <stop offset="100%" stopColor="#BFDBFE" />
           </linearGradient>
           <radialGradient id="sun-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor={T.amber} stopOpacity="1" />
@@ -617,16 +626,16 @@ function BuildingDetail({ building, onClose }) {
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(40, 25, 10, 0.55)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
+        background: 'rgba(15, 23, 42, 0.55)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '20px',
       }}
       className="fade-in"
     >
       <div onClick={e => e.stopPropagation()} style={{
-        background: T.bgPanel, borderRadius: '20px',
+        background: '#FFFFFF', borderRadius: '24px',
         maxWidth: '900px', width: '100%', maxHeight: '90vh',
         overflow: 'auto',
         border: `1px solid ${T.border}`,
@@ -778,17 +787,14 @@ function EnergyFlow({ hour, setHour, weather, setWeather }) {
   const batteryFlow = isExcess ? 'charging' : isProducing ? 'partial' : 'discharging';
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }} className="fade-in">
-
-      {/* Header info */}
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontFamily: '"Amiri", serif', fontSize: '26px', fontWeight: 700, color: T.text, marginBottom: '4px' }}>
-          محاكاة تدفق الطاقة على مدار اليوم
-        </h2>
-        <p style={{ fontSize: '13px', color: T.textMuted }}>
-          استخدم شريط الوقت لمشاهدة كيف تتدفق الطاقة من الألواح إلى البطاريات والمباني عبر 24 ساعة
-        </p>
-      </div>
+    <div className="fade-in">
+      <HeroCard
+        eyebrow="تدفق الطاقة"
+        title="محاكاة على مدار 24 ساعة"
+        subtitle="استخدم شريط الوقت لمشاهدة كيف تتدفق الطاقة من الألواح إلى البطاريات والمباني — مع تغير حالة الجو والشمس."
+        statValue={`${String(hour).padStart(2, '0')}:00`}
+        statLabel={weather === 'cloudy' ? 'غائم' : weather === 'night' ? 'ليل' : 'مشمس'}
+      />
 
       {/* Time controls */}
       <div style={{
@@ -796,25 +802,29 @@ function EnergyFlow({ hour, setHour, weather, setWeather }) {
         border: `1px solid ${T.border}`, marginBottom: '20px',
         boxShadow: T.shadow,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <button onClick={() => setAutoplay(!autoplay)} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '10px 16px',
-            background: autoplay ? T.amber : T.bgCard,
-            color: autoplay ? T.bg : T.text,
-            border: `1px solid ${autoplay ? T.amber : T.border}`,
-            borderRadius: '10px', cursor: 'pointer',
+            padding: '10px 18px',
+            background: autoplay ? `linear-gradient(135deg, ${T.blue}, ${T.blueLt})` : T.bgPanel,
+            color: autoplay ? '#FFFFFF' : T.text,
+            border: `1px solid ${autoplay ? T.blue : T.border}`,
+            borderRadius: '12px', cursor: 'pointer',
             fontWeight: 700, fontSize: '13px',
+            fontFamily: '"Reem Kufi", sans-serif',
+            boxShadow: autoplay ? '0 6px 14px rgba(37, 99, 235, 0.30)' : 'none',
+            transition: 'all 0.18s ease',
           }}>
             {autoplay ? <Pause size={16} /> : <Play size={16} />}
             {autoplay ? 'إيقاف' : 'تشغيل تلقائي'}
           </button>
 
           <div style={{
-            fontFamily: '"Amiri", serif', fontSize: '36px', fontWeight: 700,
-            color: T.amber,
+            fontFamily: '"Reem Kufi", sans-serif', fontSize: '32px', fontWeight: 700,
+            color: T.text,
+            letterSpacing: '0.05em',
           }}>
-            {String(hour).padStart(2, '0')}:00
+            {String(hour).padStart(2, '0')}<span style={{ color: T.textDim }}>:</span>00
           </div>
 
           <div style={{ flex: 1 }} />
@@ -1261,21 +1271,3 @@ function DailyChart({ dayData, currentHour, weather }) {
   );
 }
 
-// =================================================================
-// FOOTER
-// =================================================================
-function Footer() {
-  return (
-    <footer style={{
-      borderTop: `1px solid ${T.border}`, marginTop: '40px', padding: '24px',
-      background: 'rgba(255, 248, 238, 0.85)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      textAlign: 'center',
-    }}>
-      <p style={{ fontSize: '12px', color: T.textDim }}>
-        محاكاة تفاعلية · مشروع الطاقة الشمسية لجامعة الإمام الصادق · 14 مبنى · ~9,659 م² إجمالي مساحة الأسطح
-      </p>
-    </footer>
-  );
-}
