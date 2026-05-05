@@ -84,6 +84,28 @@ export const aerialPos = (b) => {
   };
 };
 
+// Stylized map positions — every block gets equal space on the
+// dashboard SVG, so labels are readable. Centers are spaced
+// ≥16 units horizontally and ≥18 vertically (uniform blocks
+// render at 11% × 13%, so this leaves clear gaps). Aerial photo
+// view still uses the real b.x/b.y geography.
+export const MAP_POSITIONS = {
+  pharm:    { cx: 12, cy: 22 },
+  pres1:    { cx: 28, cy: 18 },
+  pres2:    { cx: 44, cy: 18 },
+  library:  { cx: 62, cy: 22 },
+  arts:     { cx: 82, cy: 22 },
+  tech:     { cx: 16, cy: 42 },
+  admin1:   { cx: 40, cy: 36 },
+  admin3a:  { cx: 58, cy: 42 },
+  sadr:     { cx: 80, cy: 44 },
+  garage:   { cx: 12, cy: 65 },
+  admin4:   { cx: 28, cy: 60 },
+  admin3b:  { cx: 44, cy: 60 },
+  admin2:   { cx: 60, cy: 60 },
+  cafe:     { cx: 78, cy: 67 },
+};
+
 // ============ BUILDINGS DATA ============
 export const BUILDINGS = [
   {

@@ -4,7 +4,7 @@ import {
   X, Play, Pause, Info,
   Sparkles, Eye, Maximize2, Satellite, Tag, LayoutGrid
 } from 'lucide-react';
-import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skySvgStops, sunArc, aerialPos } from './data';
+import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skySvgStops, sunArc, aerialPos, MAP_POSITIONS } from './data';
 
 // =================================================================
 // MAIN APP
@@ -523,8 +523,9 @@ function CampusSVG({ buildings, allBuildings, selected, setSelected, hovered, se
 
         {/* Hover info */}
         {hovered && (() => {
-          const cx = W * ((hovered.x + hovered.w / 2) / 100);
-          const cy = H * ((hovered.y + hovered.h / 2) / 100);
+          const pos = MAP_POSITIONS[hovered.id] || { cx: hovered.x + hovered.w / 2, cy: hovered.y + hovered.h / 2 };
+          const cx = W * (pos.cx / 100);
+          const cy = H * (pos.cy / 100);
           const newTop = cy - H * 0.065;
           const tipY = newTop - 56;
           return (
@@ -564,9 +565,10 @@ function BuildingShape({ b, W, H, isVisible, isSelected, isHovered, onClick, onM
   // Uniform block size for readability — same footprint for every building
   const w = W * 0.11;
   const h = H * 0.13;
-  // Center the uniform block on the building's original center point
-  const cx = W * ((b.x + b.w / 2) / 100);
-  const cy = H * ((b.y + b.h / 2) / 100);
+  // Use the stylized map layout (spread out so blocks don't overlap)
+  const pos = MAP_POSITIONS[b.id] || { cx: b.x + b.w / 2, cy: b.y + b.h / 2 };
+  const cx = W * (pos.cx / 100);
+  const cy = H * (pos.cy / 100);
   const x = cx - w / 2;
   const y = cy - h / 2;
 
