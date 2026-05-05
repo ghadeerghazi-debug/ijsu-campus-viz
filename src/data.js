@@ -68,6 +68,22 @@ export const sunArc = (hour, viewW = 1200, viewH = 500) => {
   return { x, y };
 };
 
+// Maps stylized BUILDINGS x/y (0..100 grid used by the SVG map)
+// onto approximate positions on the real aerial photo. The campus
+// in the photo occupies roughly x: 28..76, y: 28..68. Pins can be
+// nudged per-building below if a specific marker lands wrong.
+const AERIAL_OVERRIDES = {
+  // id: { x, y }   — % coords on the aerial photo
+};
+export const aerialPos = (b) => {
+  const o = AERIAL_OVERRIDES[b.id];
+  if (o) return o;
+  return {
+    x: 28 + (b.x / 95) * 48,
+    y: 28 + (b.y / 65) * 40,
+  };
+};
+
 // ============ BUILDINGS DATA ============
 export const BUILDINGS = [
   {

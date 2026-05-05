@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Sun, Map, Activity, Building2, Zap, Battery, Cloud, Moon,
   X, Play, Pause, Info,
-  Sparkles, Eye, Maximize2
+  Sparkles, Eye, Maximize2, Satellite, Tag, LayoutGrid
 } from 'lucide-react';
-import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skySvgStops, sunArc } from './data';
+import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skySvgStops, sunArc, aerialPos } from './data';
 
 // =================================================================
 // MAIN APP
@@ -19,6 +19,7 @@ export default function App() {
       <Sidebar view={view} setView={setView} />
       <main className="app-main">
         {view === 'map' && <CampusMap />}
+        {view === 'aerial' && <AerialView />}
         {view === 'flow' && <EnergyFlow hour={hour} setHour={setHour} weather={weather} setWeather={setWeather} />}
       </main>
     </div>
@@ -30,8 +31,9 @@ export default function App() {
 // =================================================================
 function Sidebar({ view, setView }) {
   const items = [
-    { id: 'map', label: 'خريطة الحرم', sub: 'Campus Map', icon: Map },
-    { id: 'flow', label: 'تدفق الطاقة', sub: 'Energy Flow', icon: Activity },
+    { id: 'map',    label: 'خريطة الحرم',  sub: 'Campus Map',   icon: Map },
+    { id: 'aerial', label: 'العرض الجوي',  sub: 'Aerial View',   icon: Satellite },
+    { id: 'flow',   label: 'تدفق الطاقة',  sub: 'Energy Flow',   icon: Activity },
   ];
   return (
     <aside className="app-sidebar">
@@ -100,6 +102,122 @@ function HeroCard({ eyebrow, title, subtitle, statValue, statLabel }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// =================================================================
+// AERIAL VIEW — interactive markers on real Google Earth photo
+// =================================================================
+function AerialView() {
+  const [selected, setSelected] = useState(null);
+  const [hovered, setHovered] = useState(null);
+  const [showLabels, setShowLabels] = useState(false);
+  const [showPanels, setShowPanels] = useState(true);
+  const [filter, setFilter] = useState('all');
+
+  const colorMap = { excellent: T.green, good: T.amber, medium: T.coral };
+  const filtered = useMemo(() => {
+    if (filter === 'all') return BUILDINGS;
+    return BUILDINGS.filter(b => b.suitability === filter);
+  }, [filter]);
+
+  return (
+    <div className="fade-in">
+      <HeroCard
+        eyebrow="عرض جوي تفاعلي"
+        title="الصورة الفعلية للحرم"
+        subtitle="اضغط على أي علامة لعرض تفاصيل المبنى وصورة سطحه. كل دائرة تمثل مبنى من المباني الـ14، ولونها يعكس مدى ملاءمته للتركيب."
+        statValue={TOTALS.buildingCount}
+        statLabel="مبنى محدد"
+      />
+
+      <div className="aerial-controls">
+        <button onClick={() => setShowLabels(s => !s)} className={`aerial-toggle ${showLabels ? 'is-on' : ''}`}>
+          <Tag size={14} strokeWidth={2.2} />
+          {showLabels ? 'إخفاء الأسماء' : 'عرض الأسماء'}
+        </button>
+        <button onClick={() => setShowPanels(s => !s)} className={`aerial-toggle ${showPanels ? 'is-on' : ''}`}>
+          <LayoutGrid size={14} strokeWidth={2.2} />
+          {showPanels ? 'إخفاء الألواح المقترحة' : 'عرض الألواح المقترحة'}
+        </button>
+        <div style={{ flex: 1 }} />
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', color: T.textDim, fontWeight: 600, letterSpacing: '0.05em' }}>تصفية:</span>
+          {[
+            { id: 'all', label: 'الكل', color: T.textMuted },
+            { id: 'excellent', label: 'ممتاز', color: T.green },
+            { id: 'good', label: 'جيد', color: T.amber },
+            { id: 'medium', label: 'متوسط', color: T.coral },
+          ].map(f => {
+            const active = filter === f.id;
+            return (
+              <button key={f.id} onClick={() => setFilter(f.id)} style={{
+                padding: '7px 12px', fontSize: '11px',
+                background: active ? f.color : 'transparent',
+                color: active ? '#FFFFFF' : f.color,
+                border: `1px solid ${f.color}`,
+                borderRadius: '8px', cursor: 'pointer', fontWeight: 700,
+                fontFamily: '"Reem Kufi", sans-serif',
+                transition: 'all 0.15s ease',
+              }}>
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="aerial-canvas">
+        <img src="./photos/campus-aerial.jpg" alt="Aerial view of IJSU campus" />
+        <div className="aerial-watermark">IJSU · Google Earth</div>
+
+        {BUILDINGS.map((b, idx) => {
+          const pos = aerialPos(b);
+          const isVisible = filtered.includes(b);
+          const isSelected = selected?.id === b.id;
+          const isHovered = hovered?.id === b.id;
+          const color = colorMap[b.suitability];
+          const rank = idx + 1;
+
+          return (
+            <div
+              key={b.id}
+              className={`pin ${isSelected ? 'is-selected' : ''}`}
+              style={{
+                top: `${pos.y}%`,
+                insetInlineStart: `${pos.x}%`,
+                opacity: isVisible ? 1 : 0.18,
+                animationDelay: `${idx * 35}ms`,
+                '--c': color,
+                pointerEvents: isVisible ? 'auto' : 'none',
+              }}
+              onClick={() => setSelected(b)}
+              onMouseEnter={() => setHovered(b)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              {showPanels && isVisible && <div className="pin-panel-ring" />}
+              <div className="pin-dot" style={{ background: color }}>
+                {rank}
+              </div>
+              {(showLabels || isHovered) && (
+                <div className="pin-label">
+                  {b.name_ar} · {calculatePotential(b.area)} ك.و
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p style={{
+        textAlign: 'center', fontSize: '12px', color: T.textDim,
+        marginTop: '14px', fontStyle: 'italic'
+      }}>
+        مواقع العلامات تقريبية — يمكن تعديلها لتطابق المباني تماماً
+      </p>
+
+      {selected && <BuildingDetail building={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
