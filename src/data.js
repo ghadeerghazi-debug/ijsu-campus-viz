@@ -68,25 +68,24 @@ export const sunArc = (hour, viewW = 1200, viewH = 500) => {
   return { x, y };
 };
 
-// Best-guess seed positions on the aerial photo (% from left/top).
-// The user can drag pins to refine them in the Aerial View; the
-// drag positions persist to localStorage and can be copied back
-// here for a permanent commit.
+// Aerial-photo positions (% from left/top), placed by Ghadeer in
+// the in-app drag editor. These are the canonical defaults; the
+// editor still lets a user drag and override locally.
 export const AERIAL_DEFAULTS = {
-  pres1:    { x: 46, y: 28 },
-  pres2:    { x: 55, y: 32 },
-  admin1:   { x: 62, y: 42 },
-  admin2:   { x: 67, y: 50 },
-  admin3a:  { x: 50, y: 50 },
-  admin3b:  { x: 44, y: 50 },
-  admin4:   { x: 41, y: 56 },
-  tech:     { x: 38, y: 44 },
-  garage:   { x: 35, y: 64 },
-  cafe:     { x: 62, y: 60 },
-  sadr:     { x: 64, y: 50 },
-  library:  { x: 64, y: 36 },
-  pharm:    { x: 33, y: 38 },
-  arts:     { x: 70, y: 44 },
+  pres1:    { x: 55.84, y: 71.77 },
+  pres2:    { x: 52.39, y: 81.08 },
+  admin1:   { x: 12.26, y: 84.77 },
+  admin2:   { x: 16.27, y: 87.06 },
+  admin3a:  { x: 18.47, y: 94.45 },
+  admin3b:  { x: 23.98, y: 93.97 },
+  admin4:   { x: 11.76, y: 95.77 },
+  tech:     { x: 20.39, y: 76.06 },
+  garage:   { x: 33.72, y: 50.57 },
+  cafe:     { x: 40.69, y: 23.16 },
+  sadr:     { x: 50.35, y:  9.90 },
+  library:  { x: 65.05, y: 14.64 },
+  pharm:    { x: 74.70, y: 18.53 },
+  arts:     { x: 72.69, y: 28.12 },
 };
 export const aerialPos = (b) => {
   return AERIAL_DEFAULTS[b.id] || { x: 50, y: 50 };
