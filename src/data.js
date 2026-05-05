@@ -1,25 +1,103 @@
-// ============ THEME ============
+// ============ THEME — Sunlit Daytime ============
+// Warm cream paper, sky blue, golden amber. Designed to feel like
+// sunlight on architectural drawings; the page background mood-shifts
+// with the simulation clock (see skyGradient below).
 export const T = {
-  bg:        '#050B14',
-  bgPanel:   '#0A1628',
-  bgCard:    '#0F1F38',
-  bgHover:   '#162840',
-  bgLight:   '#1E3450',
-  amber:     '#F59E0B',
-  amberLt:   '#FCD34D',
-  amberDk:   '#B45309',
-  teal:      '#14B8A6',
-  cyan:      '#06B6D4',
-  sky:       '#3B82F6',
-  green:     '#10B981',
-  coral:     '#F87171',
-  red:       '#EF4444',
-  purple:    '#A855F7',
-  text:      '#F8FAFC',
-  textMuted: '#94A3B8',
-  textDim:   '#64748B',
-  border:    '#1E3450',
-  borderLt:  '#2A3F5C',
+  // Surfaces (warm light)
+  bg:        '#FFF8EE',  // warm cream paper
+  bgPanel:   '#FFFFFF',  // pure white card (lifts on cream)
+  bgCard:    '#FBF3DF',  // tinted cream for nested cards
+  bgHover:   '#F4E5C2',  // peachy hover
+  bgLight:   '#FFFCF3',  // pale cream surface
+
+  // Sun energy (warm)
+  amber:     '#E8893E',  // warm amber/orange — primary accent
+  amberLt:   '#F5BB52',  // golden hour
+  amberDk:   '#B8651E',  // deep amber
+
+  // Sky / cool accents
+  teal:      '#5C9893',  // muted teal
+  cyan:      '#5DA5C2',  // muted sky cyan
+  sky:       '#7AC0E8',  // bright sky blue
+  green:     '#7C9F58',  // sage green
+
+  // Warm status
+  coral:     '#E07B5A',
+  red:       '#C44A36',
+  purple:    '#8B6BB8',
+
+  // Text (dark warm on light)
+  text:      '#2A1F14',  // warm dark brown
+  textMuted: '#6F5D49',  // medium warm gray
+  textDim:   '#9A8770',  // light warm gray
+
+  // Borders
+  border:    '#E5D4B0',  // warm tan border
+  borderLt:  '#D2BC93',  // darker warm border
+
+  // Shadows for cards (warm-tinted, not gray)
+  shadow:    '0 4px 16px rgba(184, 101, 30, 0.10), 0 1px 3px rgba(120, 90, 50, 0.08)',
+  shadowDeep:'0 12px 32px rgba(184, 101, 30, 0.18), 0 4px 8px rgba(120, 90, 50, 0.10)',
+};
+
+// ============ MOOD-SHIFTING SKY ============
+// Returns a CSS background gradient for the App root, based on
+// simulation hour and weather. The page literally shifts color as
+// the user scrubs through the 24-hour simulation.
+export const skyGradient = (hour, weather) => {
+  if (weather === 'cloudy') {
+    return 'linear-gradient(180deg, #BCC8D5 0%, #D8D2C4 55%, #F0E8D8 100%)';
+  }
+  if (weather === 'night' || hour < 5 || hour >= 22) {
+    return 'linear-gradient(180deg, #1A2549 0%, #3A3863 50%, #5C4E78 90%, #826FA0 100%)';
+  }
+  if (hour >= 5 && hour < 7) {
+    // Sunrise — purple → orange → cream
+    return 'linear-gradient(180deg, #826FA0 0%, #E8893E 30%, #F5BB52 60%, #FFF1D9 100%)';
+  }
+  if (hour >= 7 && hour < 10) {
+    // Morning
+    return 'linear-gradient(180deg, #B5DBED 0%, #DDEEF7 50%, #FFF8EE 100%)';
+  }
+  if (hour >= 10 && hour < 15) {
+    // Noon
+    return 'linear-gradient(180deg, #7AC0E8 0%, #B5DBED 40%, #FFF8EE 100%)';
+  }
+  if (hour >= 15 && hour < 17) {
+    // Golden hour
+    return 'linear-gradient(180deg, #F5BB52 0%, #F8D484 50%, #FFFCF3 100%)';
+  }
+  if (hour >= 17 && hour < 19) {
+    // Sunset
+    return 'linear-gradient(180deg, #C04A38 0%, #E8893E 30%, #F5BB52 60%, #FFD9A8 100%)';
+  }
+  // 19-22 — Dusk
+  return 'linear-gradient(180deg, #5C4E78 0%, #8E6BAA 30%, #D85C4C 70%, #F5BB52 95%, #FFD9A8 100%)';
+};
+
+// Sky gradient stops for SVG <linearGradient> use (FlowDiagram).
+// Returns [topColor, bottomColor] approximations.
+export const skySvgStops = (hour, weather) => {
+  if (weather === 'cloudy')  return ['#BCC8D5', '#F0E8D8'];
+  if (weather === 'night' || hour < 5 || hour >= 22) return ['#1A2549', '#5C4E78'];
+  if (hour < 7)   return ['#826FA0', '#FFF1D9'];
+  if (hour < 10)  return ['#B5DBED', '#FFF8EE'];
+  if (hour < 15)  return ['#7AC0E8', '#FFF8EE'];
+  if (hour < 17)  return ['#F5BB52', '#FFFCF3'];
+  if (hour < 19)  return ['#C04A38', '#FFD9A8'];
+  return ['#5C4E78', '#FFD9A8'];
+};
+
+// Sun position arc across SVG viewbox 0..1200 by 0..500.
+// Returns null if the sun is below the horizon (night).
+export const sunArc = (hour, viewW = 1200, viewH = 500) => {
+  if (hour < 6 || hour > 18) return null;
+  // 6am at left horizon, 12pm at top center, 6pm at right horizon
+  const t = (hour - 6) / 12; // 0..1
+  const x = 100 + t * (viewW - 200);
+  const arc = Math.sin(t * Math.PI); // 0 at edges, 1 at noon
+  const y = viewH * 0.6 - arc * (viewH * 0.45);
+  return { x, y };
 };
 
 // ============ BUILDINGS DATA ============

@@ -6,8 +6,8 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: 'Tajawal', -apple-system, sans-serif;
-  background: #050B14;
-  color: #F8FAFC;
+  background: #FFF8EE;
+  color: #2A1F14;
   overflow-x: hidden;
 }
 
@@ -41,23 +41,38 @@ button, input, select { font-family: inherit; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
 .fade-in { animation: fade-in 0.4s ease-out; }
 .pulse-anim { animation: pulse 2s ease-in-out infinite; }
 .glow-anim { animation: glow 3s ease-in-out infinite; }
 .spin-slow { animation: spin-slow 60s linear infinite; }
+.float-anim { animation: float 5s ease-in-out infinite; }
 
-/* Scroll */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #0F1F38; }
-::-webkit-scrollbar-thumb { background: #2A3F5C; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #F59E0B; }
+/* Smooth bg transition for the App root as the simulation hour changes */
+.app-root {
+  transition: background 0.6s ease;
+}
 
-/* Range input */
+/* Scrollbar — warm */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #FBF3DF; }
+::-webkit-scrollbar-thumb {
+  background: #D2BC93;
+  border-radius: 5px;
+  border: 2px solid #FBF3DF;
+}
+::-webkit-scrollbar-thumb:hover { background: #E8893E; }
+
+/* Range input — golden */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
-  background: #1E3450;
+  background: #E5D4B0;
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -65,17 +80,18 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 20px; height: 20px;
-  background: #F59E0B;
+  width: 22px; height: 22px;
+  background: #E8893E;
   border-radius: 50%;
   cursor: pointer;
-  border: 3px solid #050B14;
-  box-shadow: 0 0 0 1px #F59E0B;
+  border: 3px solid #FFF8EE;
+  box-shadow: 0 2px 6px rgba(184, 101, 30, 0.35);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 20px; height: 20px;
-  background: #F59E0B;
+  width: 22px; height: 22px;
+  background: #E8893E;
   border-radius: 50%;
   cursor: pointer;
-  border: 3px solid #050B14;
+  border: 3px solid #FFF8EE;
+  box-shadow: 0 2px 6px rgba(184, 101, 30, 0.35);
 }

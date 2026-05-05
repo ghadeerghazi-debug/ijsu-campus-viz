@@ -4,19 +4,33 @@ import {
   X, Play, Pause, Info,
   Sparkles, Eye, Maximize2
 } from 'lucide-react';
-import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND } from './data';
+import { T, BUILDINGS, calculatePotential, generateDayData, TOTALS, ACTUAL_DEMAND, skyGradient, skySvgStops, sunArc } from './data';
 
 // =================================================================
 // MAIN APP
 // =================================================================
 export default function App() {
   const [view, setView] = useState('map'); // 'map' | 'flow'
+  // Hour + weather lifted up so the root background can mood-shift
+  // with the simulation clock — sunrise → noon → sunset → night.
+  const [hour, setHour] = useState(12);
+  const [weather, setWeather] = useState('sunny');
 
   return (
-    <div dir="rtl" lang="ar" style={{ minHeight: '100vh', background: T.bg, color: T.text }}>
+    <div
+      dir="rtl"
+      lang="ar"
+      className="app-root"
+      style={{
+        minHeight: '100vh',
+        color: T.text,
+        background: skyGradient(hour, weather),
+        backgroundAttachment: 'fixed',
+      }}
+    >
       <Header view={view} setView={setView} />
       {view === 'map' && <CampusMap />}
-      {view === 'flow' && <EnergyFlow />}
+      {view === 'flow' && <EnergyFlow hour={hour} setHour={setHour} weather={weather} setWeather={setWeather} />}
       <Footer />
     </div>
   );
@@ -29,9 +43,11 @@ function Header({ view, setView }) {
   return (
     <header style={{
       borderBottom: `1px solid ${T.border}`,
-      background: T.bgPanel,
+      background: 'rgba(255, 248, 238, 0.85)',
       position: 'sticky', top: 0, zIndex: 100,
-      backdropFilter: 'blur(8px)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      boxShadow: '0 1px 0 rgba(184, 101, 30, 0.08), 0 4px 12px rgba(184, 101, 30, 0.06)',
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 24px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
@@ -151,6 +167,7 @@ function CampusMap() {
         display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px',
         background: T.bgPanel, padding: '16px', borderRadius: '12px',
         border: `1px solid ${T.border}`,
+        boxShadow: T.shadow,
       }}>
         <Toggle on={showPanels} setOn={setShowPanels} label="عرض الألواح الشمسية" icon={Sun} />
         <Toggle on={showLabels} setOn={setShowLabels} label="عرض التسميات" icon={Eye} />
@@ -183,6 +200,7 @@ function CampusMap() {
           background: T.bgPanel, borderRadius: '16px',
           border: `1px solid ${T.border}`,
           padding: '20px', position: 'relative',
+          boxShadow: T.shadow,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>
@@ -224,9 +242,10 @@ function CampusMap() {
 function StatTile({ icon: Icon, label, value, unit, color, highlight }) {
   return (
     <div style={{
-      background: highlight ? `linear-gradient(135deg, ${color}22, ${color}08)` : T.bgPanel,
+      background: highlight ? `linear-gradient(135deg, ${color}22, ${color}08), ${T.bgPanel}` : T.bgPanel,
       border: `1px solid ${highlight ? color + '66' : T.border}`,
       borderRadius: '12px', padding: '16px',
+      boxShadow: T.shadow,
       position: 'relative', overflow: 'hidden',
     }}>
       {highlight && (
@@ -299,23 +318,23 @@ function CampusSVG({ buildings, allBuildings, selected, setSelected, hovered, se
   const W = 1200, H = 750;
 
   return (
-    <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#1A2440' }}>
+    <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#F0E0BC' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-        {/* Ground gradient */}
+        {/* Ground gradient — sand/grass */}
         <defs>
           <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1F2D4F" />
-            <stop offset="100%" stopColor="#0F1A2E" />
+            <stop offset="0%" stopColor="#E8D5A0" />
+            <stop offset="100%" stopColor="#C9B879" />
           </linearGradient>
           <radialGradient id="sun-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor={T.amber} stopOpacity="1" />
-            <stop offset="50%" stopColor={T.amber} stopOpacity="0.4" />
-            <stop offset="100%" stopColor={T.amber} stopOpacity="0" />
+            <stop offset="50%" stopColor={T.amberLt} stopOpacity="0.5" />
+            <stop offset="100%" stopColor={T.amberLt} stopOpacity="0" />
           </radialGradient>
           <pattern id="solar-pattern" width="6" height="6" patternUnits="userSpaceOnUse">
-            <rect width="6" height="6" fill={T.cyan} fillOpacity="0.6" />
-            <line x1="0" y1="0" x2="6" y2="0" stroke={T.bg} strokeWidth="0.5" />
-            <line x1="3" y1="0" x2="3" y2="6" stroke={T.bg} strokeWidth="0.3" />
+            <rect width="6" height="6" fill="#3F7CAD" fillOpacity="0.85" />
+            <line x1="0" y1="0" x2="6" y2="0" stroke="#FFF8EE" strokeWidth="0.5" />
+            <line x1="3" y1="0" x2="3" y2="6" stroke="#FFF8EE" strokeWidth="0.3" />
           </pattern>
         </defs>
 
@@ -382,8 +401,8 @@ function CampusSVG({ buildings, allBuildings, selected, setSelected, hovered, se
               x={W * (hovered.x / 100) + W * (hovered.w / 100) / 2 - 90}
               y={H * (hovered.y / 100) - 50}
               width="180" height="40" rx="6"
-              fill={T.bg} stroke={T.amber} strokeWidth="1"
-              opacity="0.95"
+              fill="#FFFFFF" stroke={T.amber} strokeWidth="1.5"
+              opacity="0.97"
             />
             <text
               x={W * (hovered.x / 100) + W * (hovered.w / 100) / 2}
@@ -396,7 +415,7 @@ function CampusSVG({ buildings, allBuildings, selected, setSelected, hovered, se
             <text
               x={W * (hovered.x / 100) + W * (hovered.w / 100) / 2}
               y={H * (hovered.y / 100) - 16}
-              textAnchor="middle" fontSize="11" fill={T.amber}
+              textAnchor="middle" fontSize="11" fill={T.amberDk}
               fontFamily='"Tajawal", sans-serif'
             >
               {hovered.area} م² · {calculatePotential(hovered.area)} ك.و إمكانية
@@ -437,13 +456,13 @@ function BuildingShape({ b, W, H, isVisible, isSelected, isHovered, onClick, onM
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* Building shadow */}
-      <rect x={x + 4} y={y + 4} width={w} height={h} rx="3" fill="black" opacity="0.3" />
+      {/* Building shadow — warm-tinted */}
+      <rect x={x + 5} y={y + 6} width={w} height={h} rx="3" fill="#5C3A1A" opacity="0.18" />
 
       {/* Building roof */}
       <rect
         x={x} y={y} width={w} height={h} rx="3"
-        fill={isSelected ? T.bgLight : T.bgCard}
+        fill={isSelected ? '#FFFCF3' : '#FFFFFF'}
         stroke={isSelected ? color : T.borderLt}
         strokeWidth={isSelected ? 3 : 1.5}
       />
@@ -508,6 +527,7 @@ function BuildingRankings({ buildings, setSelected }) {
       padding: '16px',
       maxHeight: '850px',
       overflow: 'auto',
+      boxShadow: T.shadow,
     }}>
       <h3 style={{ fontFamily: '"Reem Kufi", sans-serif', fontWeight: 600, fontSize: '15px', color: T.text, marginBottom: '4px' }}>
         ترتيب المباني حسب الإمكانية
@@ -597,8 +617,9 @@ function BuildingDetail({ building, onClose }) {
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(0, 0, 0, 0.85)',
-        backdropFilter: 'blur(8px)',
+        background: 'rgba(40, 25, 10, 0.55)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '20px',
       }}
@@ -609,6 +630,7 @@ function BuildingDetail({ building, onClose }) {
         maxWidth: '900px', width: '100%', maxHeight: '90vh',
         overflow: 'auto',
         border: `1px solid ${T.border}`,
+        boxShadow: T.shadowDeep,
         position: 'relative',
       }}>
         {/* Header strip */}
@@ -734,10 +756,8 @@ function DetailStat({ label, value, unit, color, highlight }) {
 // =================================================================
 // ENERGY FLOW VIEW
 // =================================================================
-function EnergyFlow() {
-  const [hour, setHour] = useState(12);
+function EnergyFlow({ hour, setHour, weather, setWeather }) {
   const [autoplay, setAutoplay] = useState(false);
-  const [weather, setWeather] = useState('sunny'); // 'sunny' | 'cloudy' | 'night'
 
   const totalCapacity = 500; // kW (using Qalaat best-fit)
   const dayData = useMemo(() => generateDayData(totalCapacity, weather), [weather]);
@@ -750,7 +770,7 @@ function EnergyFlow() {
       setHour(h => (h + 1) % 24);
     }, 600);
     return () => clearInterval(interval);
-  }, [autoplay]);
+  }, [autoplay, setHour]);
 
   const isDaytime = current.production > 0;
   const isProducing = current.production > 0;
@@ -774,6 +794,7 @@ function EnergyFlow() {
       <div style={{
         background: T.bgPanel, borderRadius: '16px', padding: '20px',
         border: `1px solid ${T.border}`, marginBottom: '20px',
+        boxShadow: T.shadow,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <button onClick={() => setAutoplay(!autoplay)} style={{
@@ -864,7 +885,7 @@ function EnergyFlow() {
       </div>
 
       {/* Flow diagram */}
-      <FlowDiagram current={current} weather={weather} />
+      <FlowDiagram current={current} weather={weather} hour={hour} />
 
       {/* Daily curve */}
       <DailyChart dayData={dayData} currentHour={hour} weather={weather} />
@@ -880,6 +901,7 @@ function MetricCard({ icon: Icon, label, value, unit, color, subtitle }) {
       borderRadius: '12px',
       padding: '14px',
       borderTop: `3px solid ${color}`,
+      boxShadow: T.shadow,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
         <Icon size={16} color={color} />
@@ -901,14 +923,19 @@ function MetricCard({ icon: Icon, label, value, unit, color, subtitle }) {
 // =================================================================
 // FLOW DIAGRAM (animated SVG)
 // =================================================================
-function FlowDiagram({ current, weather }) {
+function FlowDiagram({ current, weather, hour }) {
   const isDaytime = current.production > 0;
   const isExcess = current.production > current.consumption;
+  const [skyTop, skyBot] = skySvgStops(hour, weather);
+  const sun = sunArc(hour);  // null at night
+  const isMoonOut = weather === 'night' || hour < 6 || hour > 19;
 
   return (
     <div style={{
       background: T.bgPanel, borderRadius: '16px', padding: '24px',
-      border: `1px solid ${T.border}`, marginBottom: '24px',
+      border: `1px solid ${T.border}`,
+      boxShadow: T.shadow,
+      marginBottom: '24px',
     }}>
       <h3 style={{
         fontFamily: '"Reem Kufi", sans-serif', fontWeight: 600, fontSize: '16px',
@@ -917,52 +944,78 @@ function FlowDiagram({ current, weather }) {
         مخطط تدفق الطاقة الحي
       </h3>
 
-      <svg viewBox="0 0 1200 500" style={{ width: '100%', height: 'auto' }}>
+      <svg viewBox="0 0 1200 500" style={{ width: '100%', height: 'auto', borderRadius: '12px' }}>
         <defs>
-          <linearGradient id="sky-day" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1E3450" />
-            <stop offset="100%" stopColor="#0A1628" />
-          </linearGradient>
-          <linearGradient id="sky-night" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0A0F1E" />
-            <stop offset="100%" stopColor="#050B14" />
+          <linearGradient id="sky-dynamic" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={skyTop} />
+            <stop offset="100%" stopColor={skyBot} />
           </linearGradient>
           <radialGradient id="sun-rays">
             <stop offset="0%" stopColor={T.amber} />
-            <stop offset="50%" stopColor={T.amberLt} stopOpacity="0.5" />
-            <stop offset="100%" stopColor={T.amber} stopOpacity="0" />
+            <stop offset="50%" stopColor={T.amberLt} stopOpacity="0.6" />
+            <stop offset="100%" stopColor={T.amberLt} stopOpacity="0" />
           </radialGradient>
+          <linearGradient id="ground-strip" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#E8D5A0" />
+            <stop offset="100%" stopColor="#C9B879" />
+          </linearGradient>
         </defs>
 
-        {/* Sky background */}
-        <rect width="1200" height="500" fill={isDaytime ? 'url(#sky-day)' : 'url(#sky-night)'} />
+        {/* Sky background — shifts with hour */}
+        <rect width="1200" height="460" fill="url(#sky-dynamic)" />
+        {/* Thin ground strip at the very bottom */}
+        <rect y="460" width="1200" height="40" fill="url(#ground-strip)" />
 
-        {/* Sun or moon */}
-        {weather === 'night' || !isDaytime ? (
-          <g transform="translate(950, 90)">
-            <circle r="40" fill="#E8E6F0" opacity="0.95" />
-            <circle r="36" cx="-8" fill="#0A1628" />
+        {/* Stars (only at night) */}
+        {isMoonOut && (
+          <g opacity="0.85">
+            {[
+              [120, 60], [220, 110], [340, 50], [480, 90], [620, 40],
+              [780, 80], [880, 120], [1020, 60], [1120, 100], [550, 140],
+              [80, 180], [380, 200], [710, 170], [1050, 200],
+            ].map(([cx, cy], i) => (
+              <circle key={i} cx={cx} cy={cy} r="1.2" fill="#FFF1D9"
+                className={i % 3 === 0 ? "pulse-anim" : ""} />
+            ))}
           </g>
-        ) : (
-          <g transform="translate(950, 90)">
-            <circle r="100" fill="url(#sun-rays)" className="pulse-anim" />
-            <circle r="40" fill={T.amber} className="glow-anim" style={{ color: T.amber }} />
-            {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(a => (
-              <line key={a} x1="0" y1="-50" x2="0" y2="-65"
-                stroke={T.amberLt} strokeWidth="2" strokeLinecap="round"
-                transform={`rotate(${a})`}
-                opacity={weather === 'cloudy' ? 0.3 : 0.8}
+        )}
+
+        {/* Sun arcs across the sky from 6am→6pm */}
+        {sun && weather !== 'night' && (
+          <g transform={`translate(${sun.x}, ${sun.y})`}>
+            <circle r="90" fill="url(#sun-rays)" className="pulse-anim" />
+            <circle r="36" fill={T.amberLt} className="glow-anim" style={{ color: T.amber }} />
+            <circle r="36" fill={T.amber} opacity="0.55" />
+            {weather !== 'cloudy' && [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(a => (
+              <line key={a} x1="0" y1="-46" x2="0" y2="-60"
+                stroke={T.amberLt} strokeWidth="2.5" strokeLinecap="round"
+                transform={`rotate(${a})`} opacity="0.85"
               />
             ))}
           </g>
         )}
 
+        {/* Moon at night */}
+        {isMoonOut && (
+          <g transform="translate(950, 90)" className="float-anim">
+            <circle r="42" fill="#FFF1D9" opacity="0.95" />
+            <circle r="38" cx="-10" fill={skyTop} />
+            <circle r="3" cx="22" cy="-8" fill="#D2BC93" opacity="0.5" />
+            <circle r="2" cx="16" cy="14" fill="#D2BC93" opacity="0.5" />
+            <circle r="4" cx="-2" cy="20" fill="#D2BC93" opacity="0.5" />
+          </g>
+        )}
+
         {/* Clouds for cloudy weather */}
         {weather === 'cloudy' && (
-          <g opacity="0.7">
-            <ellipse cx="900" cy="100" rx="80" ry="20" fill="#94A3B8" />
-            <ellipse cx="950" cy="85" rx="60" ry="18" fill="#94A3B8" />
-            <ellipse cx="1000" cy="105" rx="70" ry="22" fill="#94A3B8" />
+          <g opacity="0.92">
+            <ellipse cx="200" cy="120" rx="90" ry="22" fill="#FFFFFF" />
+            <ellipse cx="240" cy="100" rx="60" ry="18" fill="#FFFFFF" />
+            <ellipse cx="600" cy="80" rx="80" ry="22" fill="#FFFFFF" />
+            <ellipse cx="650" cy="100" rx="55" ry="16" fill="#FFFFFF" />
+            <ellipse cx="900" cy="110" rx="90" ry="22" fill="#FFFFFF" />
+            <ellipse cx="950" cy="92" rx="60" ry="18" fill="#FFFFFF" />
+            <ellipse cx="1010" cy="115" rx="70" ry="22" fill="#FFFFFF" />
           </g>
         )}
 
@@ -979,9 +1032,9 @@ function FlowDiagram({ current, weather }) {
               [0, 1, 2].map(col => (
                 <rect key={`${row}-${col}`}
                   x={col * 40} y={row * 25} width="36" height="22" rx="2"
-                  fill={isDaytime ? T.cyan : '#2A3F5C'}
+                  fill={isDaytime ? '#3F7CAD' : '#9A8770'}
                   stroke={T.amber} strokeWidth={isDaytime ? 1 : 0.3}
-                  opacity={isDaytime ? 0.85 : 0.4}
+                  opacity={isDaytime ? 0.92 : 0.5}
                 />
               ))
             ))}
@@ -1123,6 +1176,7 @@ function DailyChart({ dayData, currentHour, weather }) {
     <div style={{
       background: T.bgPanel, borderRadius: '16px', padding: '24px',
       border: `1px solid ${T.border}`,
+      boxShadow: T.shadow,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
@@ -1214,7 +1268,10 @@ function Footer() {
   return (
     <footer style={{
       borderTop: `1px solid ${T.border}`, marginTop: '40px', padding: '24px',
-      background: T.bgPanel, textAlign: 'center',
+      background: 'rgba(255, 248, 238, 0.85)',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      textAlign: 'center',
     }}>
       <p style={{ fontSize: '12px', color: T.textDim }}>
         محاكاة تفاعلية · مشروع الطاقة الشمسية لجامعة الإمام الصادق · 14 مبنى · ~9,659 م² إجمالي مساحة الأسطح
